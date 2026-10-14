@@ -1,4 +1,7 @@
+import useCurrency from '../utils/formatCurrency';
 
+
+2.
 import {
   ResponsiveContainer,
   AreaChart,
@@ -45,24 +48,18 @@ const tooltipStyle = {
   boxShadow: '0 8px 24px rgba(30, 25, 60, 0.06)',
 };
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
+
 
 const cardClass =
   'rounded-2xl border border-[#E8E8F0] bg-white p-5 sm:p-6';
 
 export default function Analytics() {
+  const formatCurrency = useCurrency();
   const latestMonth = monthlyData[monthlyData.length - 1];
   const previousMonth = monthlyData[monthlyData.length - 2];
 
   const savings = latestMonth.income - latestMonth.expenses;
   const savingsRate = Math.round((savings / latestMonth.income) * 100);
-  const previousSavings = previousMonth.income - previousMonth.expenses;
   const incomeChange =
     ((latestMonth.income - previousMonth.income) / previousMonth.income) * 100;
   const expenseChange =

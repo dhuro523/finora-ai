@@ -1,3 +1,4 @@
+import useCurrency from '../utils/formatCurrency';
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   ArrowDownRight,
@@ -61,12 +62,6 @@ const colors = ['#7C5CFC', '#65B9AD', '#F2B76D', '#85A8D9', '#B5B5C7'];
 const MAX_AMOUNT = 1_000_000_000_000;
 const DEFAULT_ADD_AMOUNT = '40';
 
-const money = (amount: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 2,
-  }).format(amount);
 
 // Avoids floating point drift such as 750.1 + 0.2 = 750.3000000000001
 const roundCents = (value: number) => Math.round(value * 100) / 100;
@@ -74,6 +69,7 @@ const roundCents = (value: number) => Math.round(value * 100) / 100;
 const cardClass = 'rounded-2xl border border-[#E8E8F0] bg-white p-5 sm:p-6';
 
 export default function Overview() {
+const money = useCurrency();
   const [backendStatus, setBackendStatus] = useState('Checking');
   const [insights, setInsights] = useState<FinancialInsights | null>(null);
   const [insightsError, setInsightsError] = useState('');
@@ -296,7 +292,7 @@ export default function Overview() {
   const metricCards = [
     {
       label: 'Demo account balance',
-      value: '$24,680.50',
+      value: money(24680.50),
       note: 'Illustrative sample balance',
       icon: Wallet,
       iconClass: 'bg-[#F0EBFF] text-[#7C5CFC]',

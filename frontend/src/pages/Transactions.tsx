@@ -1,4 +1,4 @@
-
+import useCurrency from '../utils/formatCurrency';
 import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import {
@@ -16,7 +16,6 @@ import {
   CircleDollarSign,
   CalendarDays,
   X,
-  ArrowUpRight as ExternalArrow,
 } from 'lucide-react';
 
 type Transaction = {
@@ -76,6 +75,7 @@ const inputClass =
   'w-full rounded-xl border border-[#E8E8F0] bg-white px-3 py-3 text-sm text-[#292936] outline-none transition placeholder:text-[#A0A0B2] focus:border-[#B9A9FF] focus:ring-2 focus:ring-[#7C5CFC]/10';
 
 export default function Transactions() {
+  const formatCurrency = useCurrency();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All categories');
   const [type, setType] = useState('All transactions');
@@ -440,8 +440,7 @@ export default function Transactions() {
             Showing {filteredTransactions.length} of {demoTransactions.length}{' '}
             transactions
           </span>
-          <span>Illustrative demo data · USD</span>
-        </div>
+        <span>Illustrative demo data · Selected currency</span>        </div>
       </section>
 
       {/* Helpful note */}

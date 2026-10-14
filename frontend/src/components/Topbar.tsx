@@ -1,11 +1,48 @@
 
-import { Link } from 'react-router-dom'
-import { Bell, ChevronDown, Search, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Bell, ChevronDown, Search, Sparkles } from 'lucide-react';
+
+const STORAGE_KEY = 'finora-settings';
+
+function getDisplayName() {
+  try {
+    const settings = localStorage.getItem(STORAGE_KEY);
+    const parsed = settings ? JSON.parse(settings) : {};
+    return typeof parsed.displayName === 'string' && parsed.displayName.trim()
+      ? parsed.displayName.trim()
+      : 'Finora Demo';
+  } catch {
+    return 'Finora Demo';
+  }
+}
 
 export default function Topbar() {
+  const [displayName, setDisplayName] = useState(getDisplayName);
+
+  useEffect(() => {
+    const refreshName = () => setDisplayName(getDisplayName());
+
+    window.addEventListener('finora-settings-updated', refreshName);
+    window.addEventListener('storage', refreshName);
+
+    return () => {
+      window.removeEventListener('finora-settings-updated', refreshName);
+      window.removeEventListener('storage', refreshName);
+    };
+  }, []);
+
+const initials = displayName
+  .trim()
+  .split(/\s+/)
+  .filter(Boolean)
+  .slice(0, 2)
+  .map((part: string) => part.charAt(0))
+  .join('')
+  .toUpperCase() || 'FA';
+
   return (
     <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-[#E8E8F0] bg-white px-4 sm:px-6 lg:px-8">
-      {/* Page heading */}
       <div className="min-w-0">
         <p className="text-xs text-[#85859A]">Welcome back</p>
         <h1 className="mt-1 truncate text-sm font-semibold text-[#16161D]">
@@ -13,7 +50,6 @@ export default function Topbar() {
         </h1>
       </div>
 
-      {/* Actions */}
       <div className="ml-4 flex shrink-0 items-center gap-2 sm:gap-3">
         <button
           type="button"
@@ -36,21 +72,24 @@ export default function Topbar() {
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#7C5CFC]" />
         </button>
 
-        <button
-          type="button"
+        <Link
+          to="/settings"
+          aria-label="Open settings"
           className="flex items-center gap-2 rounded-xl px-1.5 py-1.5 transition hover:bg-[#F7F7FB] sm:px-2"
         >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F0EBFF] text-xs font-semibold text-[#6845E8]">
-            FA
+            {initials}
           </div>
 
           <div className="hidden text-left sm:block">
-            <p className="text-xs font-semibold text-[#292936]">Finora Demo</p>
-            <p className="mt-0.5 text-[10px] text-[#85859A]">Free plan</p>
+            <p className="max-w-32 truncate text-xs font-semibold text-[#292936]">
+              {displayName}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[#85859A]">Demo plan</p>
           </div>
 
           <ChevronDown size={14} className="hidden text-[#85859A] sm:block" />
-        </button>
+        </Link>
 
         <Link
           to="/copilot"
@@ -62,5 +101,5 @@ export default function Topbar() {
         </Link>
       </div>
     </header>
-  )
+  );
 }

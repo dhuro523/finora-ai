@@ -71,3 +71,100 @@ a {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* =========================================
+   FINORA AI — GLOBAL DARK MODE
+   ========================================= */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-page: #101116;
+  --color-card: #191a23;
+  --color-border: #2b2c38;
+  --color-text: #f3f3f8;
+  --color-muted: #a1a1b5;
+  --color-accent: #9a82ff;
+  --color-accent-light: #29213f;
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background: var(--color-page);
+  color: var(--color-text);
+}
+
+/* Common Tailwind background utilities */
+html[data-theme="dark"] [class~="bg-white"] {
+  background-color: var(--color-card) !important;
+}
+
+html[data-theme="dark"] [class~="bg-[#F7F7FB]"],
+html[data-theme="dark"] [class~="bg-[#FAFAFD]"] {
+  background-color: var(--color-page) !important;
+}
+
+html[data-theme="dark"] [class~="bg-[#F0EBFF]"] {
+  background-color: #29213f !important;
+}
+
+/* Text colors */
+html[data-theme="dark"] [class~="text-[#16161D]"],
+html[data-theme="dark"] [class~="text-[#292936]"] {
+  color: #f3f3f8 !important;
+}
+
+html[data-theme="dark"] [class~="text-[#6B6B80]"],
+html[data-theme="dark"] [class~="text-[#85859A]"] {
+  color: #a1a1b5 !important;
+}
+
+/* Borders */
+html[data-theme="dark"] [class~="border-[#E8E8F0]"],
+html[data-theme="dark"] [class~="border-[#D6CCFF]"] {
+  border-color: var(--color-border) !important;
+}
+
+/* Inputs and dropdowns */
+html[data-theme="dark"] input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea {
+  background-color: #191a23;
+  color: #f3f3f8;
+  border-color: var(--color-border);
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #9292a7;
+}
+
+/* Hover surfaces */
+html[data-theme="dark"] [class~="hover:bg-[#F7F7FB]"]:hover,
+html[data-theme="dark"] [class~="hover:bg-white"]:hover {
+  background-color: #242530 !important;
+}
+
+/* Smooth theme transitions */
+body,
+header,
+aside,
+main,
+section,
+article {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body,
+  header,
+  aside,
+  main,
+  section,
+  article {
+    transition: none;
+  }
+}

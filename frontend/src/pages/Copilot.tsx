@@ -1,4 +1,4 @@
-
+import useCurrency from '../utils/formatCurrency';
 import { useState, useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -203,6 +203,7 @@ function SavingsInsightCard({
 }: {
   onSelectCategory: (category: string) => void
 }) {
+  const formatCurrency = useCurrency();
   const goalProgress =
     demoSavingsGoal.target > 0
       ? Math.min(
@@ -257,7 +258,7 @@ function SavingsInsightCard({
               </span>
               <span className="shrink-0 text-sm font-semibold tabular-nums text-[#16161D]">
                 {demoCurrency}
-                {category.amount.toLocaleString()}
+                {formatCurrency(category.amount)}
               </span>
             </button>
           ))}
@@ -288,11 +289,11 @@ function SavingsInsightCard({
           <div>
             <p className="text-3xl font-bold tracking-tight text-[#16161D]">
               {demoCurrency}
-              {demoSavingsGoal.saved.toLocaleString()}
+              {formatCurrency(demoSavingsGoal.saved)}
             </p>
             <p className="mt-1 text-sm text-[#6B6B80]">
               of {demoCurrency}
-              {demoSavingsGoal.target.toLocaleString()} target
+              of {formatCurrency(demoSavingsGoal.target)} target
             </p>
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700">
@@ -310,11 +311,12 @@ function SavingsInsightCard({
         <div className="mt-4 flex items-center justify-between text-sm">
           <span className="text-[#6B6B80]">Still to save</span>
           <span className="font-semibold text-[#16161D]">
-            {demoCurrency}
-            {Math.max(
+            {formatCurrency(
+            Math.max(
               0,
               demoSavingsGoal.target - demoSavingsGoal.saved,
-            ).toLocaleString()}
+            ),
+          )}
           </span>
         </div>
 
