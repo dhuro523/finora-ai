@@ -59,3 +59,49 @@ export function getFinancialInsights(
     body: JSON.stringify({ transactions }),
   });
 }
+
+export interface SavingsGoal {
+  id: number;
+  name: string;
+  target_amount: number;
+  current_amount: number;
+  created_at: string;
+  progress_percent: number;
+  remaining_amount: number;
+}
+
+export interface CreateSavingsGoal {
+  name: string;
+  target_amount: number;
+  current_amount: number;
+}
+
+export async function getSavingsGoals(): Promise<SavingsGoal[]> {
+  const response = await apiRequest<{ goals: SavingsGoal[] }>('/api/goals');
+  return response.goals;
+}
+
+export function createSavingsGoal(
+  goal: CreateSavingsGoal,
+): Promise<SavingsGoal> {
+  return apiRequest<SavingsGoal>('/api/goals', {
+    method: 'POST',
+    body: JSON.stringify(goal),
+  });
+}
+
+export function updateSavingsGoal(
+  id: number,
+  updates: Partial<Pick<SavingsGoal, 'name' | 'target_amount' | 'current_amount'>>,
+): Promise<SavingsGoal> {
+  return apiRequest<SavingsGoal>(`/api/goals/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(updates),
+  });
+}
+
+export function deleteSavingsGoal(id: number): Promise<{ message: string; id: number }> {
+  return apiRequest<{ message: string; id: number }>(`/api/goals/${id}`, {
+    method: 'DELETE',
+  });
+}

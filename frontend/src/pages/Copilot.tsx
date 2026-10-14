@@ -10,7 +10,6 @@ import {
   RotateCcw,
   AlertCircle,
   LoaderCircle,
-  ArrowUpRight,
 } from 'lucide-react'
 import {
   demoStats,
@@ -84,10 +83,16 @@ function getFinancialContext() {
     savings_goal: {
       saved: demoSavingsGoal.saved,
       target: demoSavingsGoal.target,
-      remaining: demoSavingsGoal.target - demoSavingsGoal.saved,
-      progress_percentage: Math.round(
-        (demoSavingsGoal.saved / demoSavingsGoal.target) * 100,
+      remaining: Math.max(
+        0,
+        demoSavingsGoal.target - demoSavingsGoal.saved,
       ),
+      progress_percentage:
+        demoSavingsGoal.target > 0
+          ? Math.round(
+              (demoSavingsGoal.saved / demoSavingsGoal.target) * 100,
+            )
+          : 0,
     },
     recent_cash_flow: demoCashFlow,
     note: 'These are demonstration figures, not verified bank account data.',
@@ -198,104 +203,79 @@ function SavingsInsightCard({
 }: {
   onSelectCategory: (category: string) => void
 }) {
-  const housing =
-    demoSpending.find((item) => item.name === 'Housing')?.amount ?? 0
-  const food =
-    demoSpending.find((item) => item.name === 'Food & dining')?.amount ?? 0
-  const transport =
-    demoSpending.find((item) => item.name === 'Transport')?.amount ?? 0
+  const goalProgress =
+    demoSavingsGoal.target > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (demoSavingsGoal.saved / demoSavingsGoal.target) * 100,
+          ),
+        )
+      : 0
 
-  const opportunities = [
-    { label: 'Housing', saving: housing * 0.05, color: 'bg-violet-500' },
-    { label: 'Food & dining', saving: food * 0.1, color: 'bg-cyan-500' },
-    { label: 'Transport', saving: transport * 0.1, color: 'bg-amber-500' },
-  ]
-
-  const totalSavings = opportunities.reduce(
-    (total, item) => total + item.saving,
-    0,
-  )
-
-  const goalProgress = Math.min(
-    100,
-    Math.round((demoSavingsGoal.saved / demoSavingsGoal.target) * 100),
+  const categories = demoSpending.filter(
+    (category) => category.amount > 0,
   )
 
   return (
     <div className="mb-6 grid gap-4 lg:grid-cols-2">
-      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-violet-600 to-indigo-700 p-5 text-white shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-violet-100">
-            Potential monthly savings
-          </span>
-          <div className="rounded-xl bg-white/15 p-2">
-            <Sparkles size={19} />
+      <div className="rounded-2xl border border-[#E8E8F0] bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium text-[#6B6B80]">
+              Spending breakdown
+            </p>
+            <h3 className="mt-1 text-lg font-bold text-[#16161D]">
+              Explore your expenses
+            </h3>
+          </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#F0EBFF] text-[#7C5CFC]">
+            <Sparkles size={20} />
           </div>
         </div>
 
-        <div className="mt-5 flex items-baseline gap-2">
-          <span className="text-4xl font-bold tracking-tight">
-            ${Math.round(totalSavings)}
-          </span>
-          <span className="text-sm text-violet-100">/ month</span>
-        </div>
-
-        <p className="mt-2 text-sm leading-6 text-violet-100">
-          An illustrative opportunity if you reduce selected expenses.
+        <p className="mt-2 text-sm leading-6 text-[#6B6B80]">
+          Select a category to ask Finora AI for practical ways to manage
+          your spending. Potential savings depend on your circumstances.
         </p>
 
-        <div className="mt-5 space-y-4">
-          {opportunities.map((item) => (
+        <div className="mt-5 space-y-2">
+          {categories.map((category) => (
             <button
               type="button"
-              key={item.label}
-              onClick={() => onSelectCategory(item.label)}
-              aria-label={`Get AI advice to reduce ${item.label} expenses`}
-              className="group w-full rounded-xl text-left transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+              key={category.name}
+              onClick={() => onSelectCategory(category.name)}
+              className="flex w-full items-center justify-between gap-3 rounded-xl border border-transparent px-3 py-3 text-left transition hover:border-[#E8E8F0] hover:bg-[#F7F7FB] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#7C5CFC]"
             >
-              <div className="mb-1.5 flex items-center justify-between gap-3 px-2 pt-2 text-sm">
-                <span className="flex items-center gap-1.5 text-violet-100">
-                  {item.label}
-                  <ArrowUpRight
-                    size={13}
-                    className="opacity-0 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
-                  />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-[#16161D]">
+                  {category.name}
                 </span>
-                <span className="font-semibold">
-                  ${Math.round(item.saving)}
+                <span className="mt-1 block text-xs text-[#6B6B80]">
+                  {category.share}% of tracked spending
                 </span>
-              </div>
-
-              <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 group-hover:brightness-125 ${item.color}`}
-                  style={{
-                    width: `${
-                      (item.saving /
-                        Math.max(...opportunities.map((x) => x.saving), 1)) *
-                      100
-                    }%`,
-                  }}
-                />
-              </div>
+              </span>
+              <span className="shrink-0 text-sm font-semibold tabular-nums text-[#16161D]">
+                {demoCurrency}
+                {category.amount.toLocaleString()}
+              </span>
             </button>
           ))}
         </div>
 
-        <p className="mt-4 border-t border-white/20 pt-3 text-xs text-violet-200">
-          Estimates based on demo expenses, not guaranteed results.
-        </p>
-
-        <p className="mt-2 text-xs text-violet-200/80">
-          Select a category to get personalized AI suggestions.
+        <p className="mt-4 border-t border-[#E8E8F0] pt-3 text-xs text-[#6B6B80]">
+          Illustrative demo data, not verified bank transactions or
+          guaranteed savings.
         </p>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between">
+      <div className="rounded-2xl border border-[#E8E8F0] bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-slate-500">Savings goal</p>
-            <h3 className="mt-1 text-lg font-bold text-slate-900">
+            <p className="text-sm font-medium text-[#6B6B80]">
+              Savings goal
+            </p>
+            <h3 className="mt-1 text-lg font-bold text-[#16161D]">
               Build your safety net
             </h3>
           </div>
@@ -306,11 +286,13 @@ function SavingsInsightCard({
 
         <div className="mt-7 flex items-end justify-between gap-3">
           <div>
-            <p className="text-3xl font-bold tracking-tight text-slate-900">
-              ${demoSavingsGoal.saved.toLocaleString()}
+            <p className="text-3xl font-bold tracking-tight text-[#16161D]">
+              {demoCurrency}
+              {demoSavingsGoal.saved.toLocaleString()}
             </p>
-            <p className="mt-1 text-sm text-slate-500">
-              of ${demoSavingsGoal.target.toLocaleString()} target
+            <p className="mt-1 text-sm text-[#6B6B80]">
+              of {demoCurrency}
+              {demoSavingsGoal.target.toLocaleString()} target
             </p>
           </div>
           <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700">
@@ -318,7 +300,7 @@ function SavingsInsightCard({
           </span>
         </div>
 
-        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
+        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-[#F0F0F5]">
           <div
             className="h-full rounded-full bg-emerald-500 transition-all"
             style={{ width: `${goalProgress}%` }}
@@ -326,15 +308,18 @@ function SavingsInsightCard({
         </div>
 
         <div className="mt-4 flex items-center justify-between text-sm">
-          <span className="text-slate-500">Still to save</span>
-          <span className="font-semibold text-slate-900">
-            $
-            {(demoSavingsGoal.target - demoSavingsGoal.saved).toLocaleString()}
+          <span className="text-[#6B6B80]">Still to save</span>
+          <span className="font-semibold text-[#16161D]">
+            {demoCurrency}
+            {Math.max(
+              0,
+              demoSavingsGoal.target - demoSavingsGoal.saved,
+            ).toLocaleString()}
           </span>
         </div>
 
-        <p className="mt-5 text-xs leading-5 text-slate-400">
-          Illustrative progress using Finora's sample dashboard data.
+        <p className="mt-5 text-xs leading-5 text-[#6B6B80]">
+          Illustrative goal progress using Finora's sample dashboard data.
         </p>
       </div>
     </div>
@@ -349,7 +334,6 @@ export default function Copilot() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // Persist the current conversation in this browser tab.
   useEffect(() => {
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
@@ -362,23 +346,22 @@ export default function Copilot() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  async function sendMessage(text?: string) {
+  async function sendMessage(text?: string, retry = false) {
     const content = (text ?? input).trim()
 
     if (!content || loading) return
 
-    // Exclude the greeting, but keep every actual user and assistant turn.
     const previousMessages = messages.filter(
-      (message) => message !== initialMessage &&
-        message.content !== initialMessage.content,
+      (message) => message.content !== initialMessage.content,
     )
 
-    const userMessage: Message = {
-      role: 'user',
-      content,
+    if (!retry) {
+      setMessages((current) => [
+        ...current,
+        { role: 'user', content },
+      ])
     }
 
-    setMessages((current) => [...current, userMessage])
     setInput('')
     setError('')
     setLoading(true)
@@ -412,10 +395,7 @@ export default function Copilot() {
 
       setMessages((current) => [
         ...current,
-        {
-          role: 'assistant',
-          content: answer,
-        },
+        { role: 'assistant', content: answer },
       ])
     } catch (err) {
       setError(
@@ -431,8 +411,18 @@ export default function Copilot() {
 
   function askAboutCategory(category: string) {
     void sendMessage(
-      `Help me reduce my ${category} expenses. Analyze my ${category} spending using my dashboard figures and suggest practical, realistic ways to save money each month. Explain your recommendations and estimate potential savings without assuming that every expense can be reduced.`,
+      `Help me manage my ${category} expenses. Use the confirmed dashboard figures to understand this category. Suggest practical steps, and do not invent a specific savings amount or percentage unless it can be calculated from confirmed data. Clearly label any hypothetical examples.`,
     )
+  }
+
+  function retryLastMessage() {
+    const lastUserMessage = [...messages]
+      .reverse()
+      .find((message) => message.role === 'user')
+
+    if (lastUserMessage) {
+      void sendMessage(lastUserMessage.content, true)
+    }
   }
 
   function resetChat() {
@@ -468,7 +458,8 @@ export default function Copilot() {
         <button
           type="button"
           onClick={resetChat}
-          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+          disabled={loading}
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <RotateCcw size={15} />
           <span className="hidden sm:inline">New chat</span>
@@ -477,7 +468,7 @@ export default function Copilot() {
 
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-sm">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
             <Bot size={21} />
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-400" />
           </div>
@@ -558,16 +549,9 @@ export default function Copilot() {
                 <p>{error}</p>
                 <button
                   type="button"
-                  onClick={() => {
-                    const lastUserMessage = [...messages]
-                      .reverse()
-                      .find((message) => message.role === 'user')
-                    setError('')
-                    if (lastUserMessage) {
-                      void sendMessage(lastUserMessage.content)
-                    }
-                  }}
-                  className="mt-2 font-semibold underline underline-offset-2"
+                  onClick={retryLastMessage}
+                  disabled={loading}
+                  className="mt-2 font-semibold underline underline-offset-2 disabled:opacity-50"
                 >
                   Try again
                 </button>
