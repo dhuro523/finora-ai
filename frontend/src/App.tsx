@@ -1,6 +1,9 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import AppLayout from './layouts/AppLayout'
 import Overview from './pages/Overview'
+import Analytics from './pages/Analytics'
+import Transactions from './pages/Transactions'
+import Copilot from './pages/Copilot'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -22,17 +25,17 @@ export default function App() {
       <Routes>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Overview />} />
-          <Route
-            path="/analytics"
-            element={<PlaceholderPage title="Financial Analytics" />}
+         <Route
+           path="/analytics"
+            element={<Analytics />}
           />
-          <Route
+                  <Route
             path="/transactions"
-            element={<PlaceholderPage title="Transactions" />}
+            element={<Transactions />}
           />
           <Route
             path="/copilot"
-            element={<PlaceholderPage title="AI Copilot" />}
+            element={<Copilot />}
           />
           <Route
             path="/settings"
