@@ -1,333 +1,490 @@
+
+import { useEffect, useState } from 'react';
 import {
-  ArrowDownLeft,
+  ArrowDownRight,
   ArrowUpRight,
+  Bot,
+  CheckCircle2,
+  CircleDollarSign,
   CreditCard,
-  DollarSign,
-  PiggyBank,
-  TrendingUp,
-} from 'lucide-react'
+  RefreshCw,
+  Sparkles,
+  Wallet,
+} from 'lucide-react';
 import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
-  BarChart,
-  Bar,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts'
+} from 'recharts';
+import { Link } from 'react-router-dom';
 import {
-  demoStats,
-  demoCashFlow,
-  demoSpending,
-  demoSavingsGoal,
-} from '../data/finance'
+  checkBackend,
+  getFinancialInsights,
+  type FinancialInsights,
+  type FinancialTransaction,
+} from '../api/client';
 
-const statIcons = [DollarSign, ArrowDownLeft, CreditCard, PiggyBank]
+const cashFlow = [
+  { month: 'May', income: 4200, expenses: 2850 },
+  { month: 'Jun', income: 4600, expenses: 3100 },
+  { month: 'Jul', income: 4400, expenses: 2900 },
+  { month: 'Aug', income: 5100, expenses: 3200 },
+  { month: 'Sep', income: 4800, expenses: 3050 },
+  { month: 'Oct', income: 5400, expenses: 3250 },
+];
 
-const chartColors = [
-  '#8B73FF',
-  '#36C8E8',
-  '#F6B75E',
-  '#F472B6',
-  '#34405D',
-]
+const transactions: FinancialTransaction[] = [
+  { name: 'Monthly salary', category: 'Income', amount: 5400, type: 'income', date: '2026-10-01' },
+  { name: 'Apartment rent', category: 'Housing', amount: 950, type: 'expense', date: '2026-10-02' },
+  { name: 'Groceries', category: 'Food', amount: 200, type: 'expense', date: '2026-10-03' },
+  { name: 'Shopping', category: 'Shopping', amount: 120, type: 'expense', date: '2026-10-04' },
+  { name: 'Transport', category: 'Transport', amount: 65, type: 'expense', date: '2026-10-05' },
+];
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat('en-US', {
+const colors = ['#7C5CFC', '#65B9AD', '#F2B76D', '#85A8D9', '#B5B5C7'];
+
+const money = (amount: number) =>
+  new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 2,
-  }).format(value)
-}
+  }).format(amount);
 
-const tooltipStyle = {
-  backgroundColor: '#151629',
-  border: '1px solid rgba(255,255,255,0.1)',
-  borderRadius: '12px',
-  color: '#fff',
-}
+const cardClass = 'rounded-2xl border border-[#E8E8F0] bg-white p-5 sm:p-6';
 
 export default function Overview() {
-  const totalSpent = demoSpending.reduce(
-    (total, item) => total + item.amount,
-    0,
-  )
+  const [backendStatus, setBackendStatus] = useState('Checking');
+  const [insights, setInsights] = useState<FinancialInsights | null>(null);
+  const [insightsError, setInsightsError] = useState('');
 
-  const savingsPercent = Math.round(
-    (demoSavingsGoal.saved / demoSavingsGoal.target) * 100,
-  )
+  useEffect(() => {
+    let active = true;
+
+    checkBackend()
+      .then(() => {
+        if (active) setBackendStatus('Connected');
+      })
+      .catch(() => {
+        if (active) {
+          setBackendStatus('Offline');
+          setInsightsError('Could not connect to the financial analysis API.');
+        }
+      });
+
+    getFinancialInsights(transactions)
+      .then((data) => {
+        if (active) {
+          setInsights(data);
+          setInsightsError('');
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setInsightsError('Financial insights are temporarily unavailable.');
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const spending =
+    insights?.spending_by_category.map((item, index) => ({
+      name: item.category,
+      value: item.amount,
+      color: colors[index % colors.length],
+    })) ?? [];
+
+  const totalIncome = insights?.total_income ?? 0;
+  const totalExpenses = insights?.total_expenses ?? 0;
+  const netSavings = insights?.net_savings ?? 0;
+  const savingsRate = insights?.savings_rate ?? 0;
+
+  const metricCards = [
+    {
+      label: 'Demo account balance',
+      value: '$24,680.50',
+      note: 'Illustrative sample balance',
+      icon: Wallet,
+      iconClass: 'bg-[#F0EBFF] text-[#7C5CFC]',
+    },
+    {
+      label: 'Sample income',
+      value: money(totalIncome),
+      note: 'Calculated by the Python API',
+      icon: ArrowUpRight,
+      iconClass: 'bg-[#EAF7EF] text-[#16834A]',
+    },
+    {
+      label: 'Sample expenses',
+      value: money(totalExpenses),
+      note: 'Calculated by the Python API',
+      icon: CreditCard,
+      iconClass: 'bg-[#F0F4FA] text-[#5979AA]',
+    },
+    {
+      label: 'Savings rate',
+      value: `${savingsRate.toFixed(1)}%`,
+      note: 'Based on sample transactions',
+      icon: Sparkles,
+      iconClass: 'bg-[#FFF5E7] text-[#B77925]',
+    },
+  ];
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-8">
-      <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+    <div className="mx-auto w-full max-w-[1600px] space-y-6 text-[#16161D]">
+      {/* Page heading */}
+      <section className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-slate-400">
-            Wednesday, October 14, 2026
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-white">
-            Here's your money, at a glance.
-          </h2>
-          <p className="mt-2 text-sm text-slate-500">
-            Understand your spending. Make your next move count.
+          <div className="mb-2 flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#7C5CFC]" />
+            <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[#7C5CFC]">
+              Your financial workspace
+            </p>
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-[30px]">
+            Financial overview
+          </h1>
+          <p className="mt-2 text-sm text-[#77778B]">
+            Understand your money at a glance.
           </p>
         </div>
 
-        <button className="flex w-fit items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-2.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20">
-          <TrendingUp size={16} />
-          This month
-        </button>
+        <div className="flex items-center gap-2 rounded-full border border-[#E8E8F0] bg-white px-3 py-2 text-xs text-[#6B6B80]">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              backendStatus === 'Connected'
+                ? 'bg-[#16A34A]'
+                : backendStatus === 'Offline'
+                  ? 'bg-[#DC2626]'
+                  : 'bg-[#D99A31]'
+            }`}
+          />
+          API {backendStatus}
+        </div>
       </section>
 
-      {/* Financial summary cards */}
+      {/* Metrics */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {demoStats.map((stat, index) => {
-          const Icon = statIcons[index]
-
-          return (
-            <article
-              key={stat.label}
-              className="rounded-2xl border border-white/[0.07] bg-[#101120] p-5 transition duration-200 hover:border-violet-400/20"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-400">{stat.label}</p>
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/10 text-violet-300">
-                  <Icon size={18} strokeWidth={1.8} />
-                </div>
+        {metricCards.map(({ label, value, note, icon: Icon, iconClass }) => (
+          <div
+            key={label}
+            className={`${cardClass} transition-colors duration-200 hover:border-[#DCD4FF]`}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm font-medium text-[#6B6B80]">{label}</p>
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconClass}`}>
+                <Icon size={19} strokeWidth={1.9} />
               </div>
-
-              <p className="mt-5 text-2xl font-semibold tracking-tight text-white">
-                {stat.value}
-              </p>
-
-              <div className="mt-3 flex items-center gap-2 text-xs">
-                <span className="flex items-center gap-1 font-medium text-emerald-400">
-                  <ArrowUpRight size={14} />
-                  {stat.change}
-                </span>
-                <span className="text-slate-500">{stat.detail}</span>
-              </div>
-            </article>
-          )
-        })}
+            </div>
+            <p className="mt-5 break-words text-[25px] font-semibold tracking-tight tabular-nums text-[#16161D]">
+              {value}
+            </p>
+            <p className="mt-2 text-xs text-[#85859A]">{note}</p>
+          </div>
+        ))}
       </section>
 
-      {/* Charts */}
+      {/* Cash flow and spending */}
       <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Cash flow chart */}
-        <article className="rounded-2xl border border-white/[0.07] bg-[#101120] p-6 xl:col-span-2">
-          <div className="flex items-start justify-between">
+        <div className={`${cardClass} min-w-0 xl:col-span-2`}>
+          <div className="mb-7 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="font-semibold text-white">Cash flow</h3>
-              <p className="mt-1 text-xs text-slate-500">
-                Income versus expenses over the last six months
+              <h2 className="text-base font-semibold">Cash flow</h2>
+              <p className="mt-1.5 text-sm text-[#85859A]">
+                Illustrative six-month history
               </p>
             </div>
-
-            <span className="rounded-lg border border-white/[0.08] px-3 py-1.5 text-xs text-slate-400">
-              Last 6 months
+            <span className="rounded-lg border border-[#E8E8F0] bg-[#FAFAFD] px-3 py-1.5 text-xs font-medium text-[#77778B]">
+              Demo data
             </span>
           </div>
 
-          <div className="mt-8 h-64">
+          <div className="h-64 w-full sm:h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={demoCashFlow}
-                barGap={6}
-                margin={{ top: 8, right: 4, left: -24, bottom: 0 }}
-              >
-                <CartesianGrid
-                  stroke="rgba(255,255,255,0.06)"
-                  vertical={false}
-                />
+              <AreaChart data={cashFlow} margin={{ top: 5, right: 5, left: -18, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="incomeFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#7C5CFC" stopOpacity={0.16} />
+                    <stop offset="95%" stopColor="#7C5CFC" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="expenseFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#65B9AD" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#65B9AD" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+
+                <CartesianGrid stroke="#EEEEF4" vertical={false} />
                 <XAxis
                   dataKey="month"
+                  tick={{ fill: '#85859A', fontSize: 12 }}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#94a3b8', fontSize: 12 }}
+                  tickMargin={12}
                 />
                 <YAxis
+                  tick={{ fill: '#85859A', fontSize: 11 }}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
+                  tickFormatter={(value) => `$${value / 1000}k`}
+                  width={45}
                 />
                 <Tooltip
-                  cursor={{ fill: 'rgba(139,115,255,0.08)' }}
-                  contentStyle={tooltipStyle}
+                  formatter={(value) => money(Number(value))}
+                  contentStyle={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E8E8F0',
+                    borderRadius: 12,
+                    color: '#16161D',
+                    fontSize: 12,
+                    boxShadow: '0 8px 24px rgba(30, 25, 60, 0.06)',
+                  }}
                 />
-                <Bar
+                <Area
+                  type="monotone"
                   dataKey="income"
                   name="Income"
-                  fill="#8B73FF"
-                  radius={[5, 5, 0, 0]}
+                  stroke="#7C5CFC"
+                  strokeWidth={2.5}
+                  fill="url(#incomeFill)"
+                  activeDot={{ r: 4, strokeWidth: 0, fill: '#7C5CFC' }}
                 />
-                <Bar
+                <Area
+                  type="monotone"
                   dataKey="expenses"
                   name="Expenses"
-                  fill="#36C8E8"
-                  radius={[5, 5, 0, 0]}
+                  stroke="#65B9AD"
+                  strokeWidth={2.5}
+                  fill="url(#expenseFill)"
+                  activeDot={{ r: 4, strokeWidth: 0, fill: '#65B9AD' }}
                 />
-              </BarChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-5 flex gap-5">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="h-2.5 w-2.5 rounded-sm bg-violet-400" />
+          <div className="mt-5 flex flex-wrap gap-5 border-t border-[#F0F0F5] pt-4 text-xs text-[#6B6B80]">
+            <span className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#7C5CFC]" />
               Income
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="h-2.5 w-2.5 rounded-sm bg-cyan-400" />
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#65B9AD]" />
               Expenses
-            </div>
+            </span>
           </div>
-        </article>
+        </div>
 
-        {/* Spending breakdown chart */}
-        <article className="rounded-2xl border border-white/[0.07] bg-[#101120] p-6">
-          <h3 className="font-semibold text-white">Spending breakdown</h3>
-          <p className="mt-1 text-xs text-slate-500">
-            Where your money goes
-          </p>
+        <div className={`${cardClass} min-w-0`}>
+          <div>
+            <h2 className="text-base font-semibold">Spending breakdown</h2>
+            <p className="mt-1.5 text-sm text-[#85859A]">
+              Calculated from submitted transactions
+            </p>
+          </div>
 
-          <div className="relative mx-auto my-6 h-48 w-full">
+          <div className="relative mt-3 h-52">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={demoSpending}
-                  dataKey="amount"
+                  data={spending}
+                  dataKey="value"
                   nameKey="name"
-                  cx="50%"
-                  cy="50%"
                   innerRadius={58}
-                  outerRadius={82}
+                  outerRadius={79}
                   paddingAngle={3}
                   stroke="none"
                 >
-                  {demoSpending.map((item, index) => (
-                    <Cell
-                      key={item.name}
-                      fill={chartColors[index % chartColors.length]}
-                    />
+                  {spending.map((item) => (
+                    <Cell key={item.name} fill={item.color} />
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value) => formatCurrency(Number(value))}
-                  contentStyle={tooltipStyle}
+                  formatter={(value) => money(Number(value))}
+                  contentStyle={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E8E8F0',
+                    borderRadius: 12,
+                    color: '#16161D',
+                    fontSize: 12,
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
 
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-xs text-slate-500">Total spent</span>
-              <span className="mt-1 text-lg font-semibold text-white">
-                {formatCurrency(totalSpent)}
+              <span className="text-xs text-[#85859A]">Total expenses</span>
+              <span className="mt-1 text-lg font-semibold tabular-nums">
+                {money(totalExpenses)}
               </span>
             </div>
           </div>
 
-          <div className="space-y-4">
-            {demoSpending.map((item, index) => (
-              <div
-                key={item.name}
-                className="flex items-center justify-between gap-3 text-xs"
-              >
-                <div className="flex items-center gap-2.5">
+          <div className="mt-3 space-y-4">
+            {spending.map((item) => (
+              <div key={item.name} className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2.5 text-sm text-[#6B6B80]">
                   <span
-                    className="h-2.5 w-2.5 rounded-sm"
-                    style={{
-                      backgroundColor:
-                        chartColors[index % chartColors.length],
-                    }}
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: item.color }}
                   />
-                  <span className="text-slate-300">{item.name}</span>
+                  <span className="truncate">{item.name}</span>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="text-slate-400">
-                    {formatCurrency(item.amount)}
-                  </span>
-                  <span className="w-8 text-right text-slate-500">
-                    {item.share}
-                  </span>
-                </div>
+                <span className="shrink-0 text-sm font-medium tabular-nums text-[#292936]">
+                  {money(item.value)}
+                </span>
               </div>
             ))}
+            {spending.length === 0 && (
+              <p className="py-3 text-center text-sm text-[#85859A]">
+                {insights ? 'No expense categories to display.' : 'Loading spending data…'}
+              </p>
+            )}
           </div>
-        </article>
+        </div>
       </section>
 
-      {/* Financial insights and savings goal */}
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <article className="rounded-2xl border border-violet-400/15 bg-gradient-to-br from-violet-500/[0.10] to-[#101120] p-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500/15 text-violet-300">
-              <TrendingUp size={18} />
-            </div>
+      {/* Transactions and AI insight */}
+      <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <div className={`${cardClass} min-w-0 xl:col-span-2`}>
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h3 className="text-sm font-semibold text-white">
-                Your savings opportunity
-              </h3>
-              <p className="mt-0.5 text-xs text-slate-500">
-                A demo insight from Finora
+              <h2 className="text-base font-semibold">Recent transactions</h2>
+              <p className="mt-1.5 text-sm text-[#85859A]">
+                Sample activity sent to the backend for analysis
               </p>
             </div>
+            <Link
+              to="/transactions"
+              className="text-xs font-semibold text-[#7C5CFC] transition hover:text-[#6845E8]"
+            >
+              View transactions →
+            </Link>
           </div>
 
-          <p className="mt-4 text-sm leading-6 text-slate-300">
-            Your dining expenses are one area to review. A 10% reduction
-            could free up around $70 this month, based on this sample data.
-          </p>
+          <div className="divide-y divide-[#F0F0F5]">
+            {transactions.map((transaction) => {
+              const Icon =
+                transaction.type === 'income'
+                  ? Wallet
+                  : transaction.category === 'Food'
+                    ? CircleDollarSign
+                    : transaction.category === 'Housing'
+                      ? CreditCard
+                      : RefreshCw;
 
-          <button className="mt-5 text-xs font-semibold text-violet-300 transition hover:text-violet-200">
-            Explore spending →
-          </button>
-        </article>
+              return (
+                <div
+                  key={transaction.name}
+                  className="flex items-center justify-between gap-3 py-4 first:pt-2 last:pb-1"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                        transaction.type === 'income'
+                          ? 'bg-[#EAF7EF] text-[#16834A]'
+                          : 'bg-[#F5F5FA] text-[#77778B]'
+                      }`}
+                    >
+                      <Icon size={18} strokeWidth={1.8} />
+                    </div>
 
-        <article className="rounded-2xl border border-cyan-400/15 bg-gradient-to-br from-cyan-400/[0.07] to-[#101120] p-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
-              <PiggyBank size={18} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[#292936]">
+                        {transaction.name}
+                      </p>
+                      <p className="mt-1 text-xs text-[#85859A]">
+                        {transaction.category} · {transaction.date}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span
+                    className={`whitespace-nowrap text-sm font-semibold tabular-nums ${
+                      transaction.type === 'income'
+                        ? 'text-[#16834A]'
+                        : 'text-[#292936]'
+                    }`}
+                  >
+                    {transaction.type === 'income' ? '+' : '-'}
+                    {money(Math.abs(transaction.amount))}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={`${cardClass} relative overflow-hidden`}>
+          <div className="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-[#F0EBFF] blur-3xl" />
+
+          <div className="relative">
+            <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#F0EBFF] text-[#7C5CFC]">
+              <Bot size={22} strokeWidth={1.8} />
             </div>
-            <div>
-              <h3 className="text-sm font-semibold text-white">
-                Monthly savings goal
-              </h3>
-              <p className="mt-0.5 text-xs text-slate-500">
-                Your progress at a glance
-              </p>
+
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold">Finora AI insight</h2>
+              <Sparkles size={15} className="text-[#7C5CFC]" />
             </div>
-          </div>
 
-          <div className="mt-5 flex items-end justify-between">
-            <div>
-              <p className="text-2xl font-semibold text-white">
-                {formatCurrency(demoSavingsGoal.saved)}
+            {insights ? (
+              <>
+                <p className="mt-3 text-sm leading-6 text-[#6B6B80]">
+                  {insights.summary}
+                </p>
+
+                {insights.largest_expense_category && (
+                  <div className="mt-5 rounded-xl border border-[#E8E0FF] bg-[#FAF8FF] p-4">
+                    <p className="text-xs font-medium text-[#7C5CFC]">
+                      Largest expense category
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[#292936]">
+                      {insights.largest_expense_category.category}
+                    </p>
+                    <p className="mt-1 text-lg font-semibold tabular-nums text-[#16161D]">
+                      {money(insights.largest_expense_category.amount)}
+                    </p>
+                  </div>
+                )}
+
+                <p className="mt-4 text-xs leading-5 text-[#85859A]">
+                  Summary calculated by Finora's Python API. This is not an AI-generated recommendation.
+                </p>
+              </>
+            ) : (
+              <p className="mt-3 text-sm leading-6 text-[#77778B]">
+                {insightsError || 'Analyzing sample transactions…'}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                of {formatCurrency(demoSavingsGoal.target)} goal
-              </p>
-            </div>
-            <p className="text-sm font-semibold text-cyan-300">
-              {savingsPercent}%
-            </p>
-          </div>
+            )}
 
-          <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.07]">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-violet-400"
-              style={{ width: `${savingsPercent}%` }}
-            />
+            <Link
+              to="/copilot"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#7C5CFC] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6845E8]"
+            >
+              <Sparkles size={16} />
+              Ask Finora AI
+            </Link>
           </div>
-
-          <p className="mt-3 text-xs text-slate-500">
-            {formatCurrency(demoSavingsGoal.target - demoSavingsGoal.saved)}{' '}
-            left to reach your goal.
-          </p>
-        </article>
+        </div>
       </section>
+
+      {/* Demo-data disclosure */}
+      <footer className="flex flex-wrap items-center gap-2 pb-2 text-xs text-[#85859A]">
+        <CheckCircle2 size={15} className="text-[#16A34A]" />
+        Demo transactions · No bank account connected
+        <span className="sr-only">
+          Net savings: {money(netSavings)}
+          <ArrowDownRight />
+        </span>
+      </footer>
     </div>
-  )
+  );
 }

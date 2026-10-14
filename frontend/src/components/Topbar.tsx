@@ -1,44 +1,65 @@
+
+import { Link } from 'react-router-dom'
 import { Bell, ChevronDown, Search, Sparkles } from 'lucide-react'
 
 export default function Topbar() {
   return (
-    <header className="flex h-[76px] items-center justify-between border-b border-white/[0.07] bg-[#0A0B18]/80 px-8">
-      <div>
-        <p className="text-xs text-slate-500">Welcome back</p>
-        <h1 className="mt-1 text-sm font-semibold text-white">
+    <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-[#E8E8F0] bg-white px-4 sm:px-6 lg:px-8">
+      {/* Page heading */}
+      <div className="min-w-0">
+        <p className="text-xs text-[#85859A]">Welcome back</p>
+        <h1 className="mt-1 truncate text-sm font-semibold text-[#16161D]">
           Your financial overview
         </h1>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button className="hidden items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-xs text-slate-500 transition hover:border-violet-400/30 sm:flex">
+      {/* Actions */}
+      <div className="ml-4 flex shrink-0 items-center gap-2 sm:gap-3">
+        <button
+          type="button"
+          aria-label="Search"
+          className="hidden items-center gap-2 rounded-xl border border-[#E8E8F0] bg-[#FAFAFD] px-3 py-2.5 text-xs text-[#85859A] transition hover:border-[#D6CCFF] hover:bg-white sm:flex"
+        >
           <Search size={15} />
           <span>Search anything...</span>
-          <span className="ml-4 rounded border border-white/10 px-1.5 py-0.5 text-[10px]">
+          <span className="ml-3 rounded border border-[#E8E8F0] bg-white px-1.5 py-0.5 text-[10px] text-[#85859A]">
             /
           </span>
         </button>
 
-        <button className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-white/[0.08] text-slate-400 transition hover:bg-white/[0.05] hover:text-white">
-          <Bell size={17} />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-cyan-400" />
+        <button
+          type="button"
+          aria-label="Notifications"
+          className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E8E8F0] text-[#6B6B80] transition hover:bg-[#F7F7FB] hover:text-[#16161D]"
+        >
+          <Bell size={17} strokeWidth={1.8} />
+          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-[#7C5CFC]" />
         </button>
 
-        <button className="flex items-center gap-2 rounded-xl px-2 py-1.5 transition hover:bg-white/[0.04]">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/30 to-cyan-400/20 text-xs font-semibold text-violet-200">
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-xl px-1.5 py-1.5 transition hover:bg-[#F7F7FB] sm:px-2"
+        >
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#F0EBFF] text-xs font-semibold text-[#6845E8]">
             FA
           </div>
+
           <div className="hidden text-left sm:block">
-            <p className="text-xs font-medium text-white">Finora Demo</p>
-            <p className="mt-0.5 text-[10px] text-slate-500">Free plan</p>
+            <p className="text-xs font-semibold text-[#292936]">Finora Demo</p>
+            <p className="mt-0.5 text-[10px] text-[#85859A]">Free plan</p>
           </div>
-          <ChevronDown size={14} className="text-slate-500" />
+
+          <ChevronDown size={14} className="hidden text-[#85859A] sm:block" />
         </button>
 
-        <button className="hidden items-center gap-2 rounded-xl bg-violet-500 px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-violet-900/20 transition hover:bg-violet-400 md:flex">
+        <Link
+          to="/copilot"
+          className="flex items-center gap-2 rounded-xl bg-[#7C5CFC] px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-[#6845E8] sm:px-4"
+        >
           <Sparkles size={15} />
-          Ask AI
-        </button>
+          <span className="hidden sm:inline">Ask AI</span>
+          <span className="sm:hidden">AI</span>
+        </Link>
       </div>
     </header>
   )

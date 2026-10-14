@@ -1,251 +1,642 @@
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import {
-  ArrowUp,
-  Sparkles,
-  Plus,
   Bot,
-  UserRound,
-  TrendingUp,
-  Wallet,
-  ShoppingBag,
-  PiggyBank,
+  Send,
+  User,
+  Sparkles,
   RotateCcw,
+  AlertCircle,
+  LoaderCircle,
+  ArrowUpRight,
 } from 'lucide-react'
+import {
+  demoStats,
+  demoSpending,
+  demoSavingsGoal,
+  demoCashFlow,
+  demoCurrency,
+} from '../data/finance'
 
 type Message = {
-  id: number
-  role: 'assistant' | 'user'
+  role: 'user' | 'assistant'
   content: string
 }
 
+const API_URL = 'http://127.0.0.1:8000/api/chat'
+const STORAGE_KEY = 'finora-copilot-messages'
+const MAX_HISTORY_MESSAGES = 40
+
+const initialMessage: Message = {
+  role: 'assistant',
+  content:
+    "Hey! I'm your Finora AI financial copilot. 👋\n\nI can help you understand your spending, find savings opportunities, and make smarter financial decisions using the figures in your dashboard.\n\nWhat would you like to explore?",
+}
+
 const suggestions = [
-  {
-    icon: TrendingUp,
-    title: 'Analyze my spending',
-    prompt: 'Analyze my spending and tell me where most of my money goes.',
-  },
-  {
-    icon: PiggyBank,
-    title: 'Help me save more',
-    prompt: 'Give me practical ways to increase my monthly savings.',
-  },
-  {
-    icon: Wallet,
-    title: 'Review my cash flow',
-    prompt: 'Review my income and expenses and explain my cash flow.',
-  },
-  {
-    icon: ShoppingBag,
-    title: 'Find spending patterns',
-    prompt: 'What spending patterns should I pay attention to?',
-  },
+  'Where does most of my money go?',
+  'How can I save more each month?',
+  'Analyze my financial health',
+  'Give me a plan to reduce expenses',
 ]
 
-function getDemoResponse(question: string): string {
-  const q = question.toLowerCase()
+function loadSavedMessages(): Message[] {
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY)
 
-  if (q.includes('spend') || q.includes('expense') || q.includes('category')) {
-    return "Based on your sample transactions, housing is one of your largest expenses at $950 per month. Groceries, shopping, subscriptions, and dining are also worth tracking.\n\n**A practical next step:** set a monthly budget for flexible categories like dining and shopping, then review them weekly.\n\nThese figures are illustrative demo data, not connected bank activity."
+    if (!saved) return [initialMessage]
+
+    const parsed: unknown = JSON.parse(saved)
+
+    if (
+      !Array.isArray(parsed) ||
+      !parsed.every(
+        (message) =>
+          message &&
+          (message.role === 'user' || message.role === 'assistant') &&
+          typeof message.content === 'string',
+      )
+    ) {
+      return [initialMessage]
+    }
+
+    return parsed.length > 0 ? parsed : [initialMessage]
+  } catch {
+    return [initialMessage]
   }
+}
 
-  if (q.includes('sav') || q.includes('save') || q.includes('budget')) {
-    return "A good starting point is to set a savings target before spending the rest of your income.\n\n**Try this approach:**\n- Set aside a fixed percentage of income when you receive it.\n- Review subscriptions and recurring expenses monthly.\n- Choose a realistic spending limit for dining and shopping.\n\nOnce your actual financial data is connected, I can help estimate a savings target from your real cash flow."
+function getFinancialContext() {
+  return {
+    data_source: 'Finora demo dashboard data',
+    currency: demoCurrency,
+    total_balance: demoStats[0].value,
+    monthly_income: demoStats[1].value,
+    monthly_expenses: demoStats[2].value,
+    savings_rate: demoStats[3].value,
+    spending_categories: demoSpending.map((category) => ({
+      name: category.name,
+      amount: category.amount,
+      share: category.share,
+    })),
+    savings_goal: {
+      saved: demoSavingsGoal.saved,
+      target: demoSavingsGoal.target,
+      remaining: demoSavingsGoal.target - demoSavingsGoal.saved,
+      progress_percentage: Math.round(
+        (demoSavingsGoal.saved / demoSavingsGoal.target) * 100,
+      ),
+    },
+    recent_cash_flow: demoCashFlow,
+    note: 'These are demonstration figures, not verified bank account data.',
   }
+}
 
-  if (q.includes('cash flow') || q.includes('income') || q.includes('balance')) {
-    return "Your sample transactions include salary and freelance income, along with housing, grocery, transport, and subscription expenses.\n\nTo understand your cash flow, compare total income against total expenses over the same period. Then separate recurring bills from flexible spending.\n\n**Important:** Finora currently uses sample data, so these are general observations rather than a verified view of your finances."
-  }
+function MarkdownMessage({ content }: { content: string }) {
+  return (
+    <div className="min-w-0 text-sm leading-7 text-slate-700">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          h1: ({ children }) => (
+            <h1 className="mb-3 mt-5 text-xl font-bold tracking-tight text-slate-900 first:mt-0">
+              {children}
+            </h1>
+          ),
+          h2: ({ children }) => (
+            <h2 className="mb-2 mt-5 text-lg font-bold tracking-tight text-slate-900 first:mt-0">
+              {children}
+            </h2>
+          ),
+          h3: ({ children }) => (
+            <h3 className="mb-2 mt-4 text-base font-semibold text-slate-900">
+              {children}
+            </h3>
+          ),
+          p: ({ children }) => (
+            <p className="mb-3 last:mb-0">{children}</p>
+          ),
+          strong: ({ children }) => (
+            <strong className="font-semibold text-slate-900">
+              {children}
+            </strong>
+          ),
+          ul: ({ children }) => (
+            <ul className="mb-4 ml-5 list-disc space-y-1.5 marker:text-violet-500">
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol className="mb-4 ml-5 list-decimal space-y-1.5 marker:font-semibold marker:text-violet-600">
+              {children}
+            </ol>
+          ),
+          li: ({ children }) => <li className="pl-1">{children}</li>,
+          blockquote: ({ children }) => (
+            <blockquote className="my-4 border-l-4 border-violet-300 pl-4 italic text-slate-600">
+              {children}
+            </blockquote>
+          ),
+          hr: () => <hr className="my-5 border-slate-200" />,
+          table: ({ children }) => (
+            <div className="my-4 w-full overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full min-w-[320px] border-collapse text-left text-sm">
+                {children}
+              </table>
+            </div>
+          ),
+          thead: ({ children }) => (
+            <thead className="bg-slate-100">{children}</thead>
+          ),
+          th: ({ children }) => (
+            <th className="whitespace-nowrap border-b border-slate-200 px-3 py-3 font-semibold text-slate-700">
+              {children}
+            </th>
+          ),
+          td: ({ children }) => (
+            <td className="border-b border-slate-100 px-3 py-3 text-slate-600">
+              {children}
+            </td>
+          ),
+          code: ({ children, className }) =>
+            className ? (
+              <code className="font-mono text-xs leading-6 text-slate-100">
+                {children}
+              </code>
+            ) : (
+              <code className="rounded bg-violet-50 px-1.5 py-0.5 font-mono text-[0.85em] text-violet-700">
+                {children}
+              </code>
+            ),
+          pre: ({ children }) => (
+            <pre className="my-4 overflow-x-auto rounded-lg bg-slate-900 p-4">
+              {children}
+            </pre>
+          ),
+          a: ({ href, children }) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-violet-600 underline underline-offset-2 hover:text-violet-800"
+            >
+              {children}
+            </a>
+          ),
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
+}
 
-  if (q.includes('pattern') || q.includes('trend') || q.includes('analy')) {
-    return "Here are three useful patterns to monitor:\n\n**1. Recurring costs** — track rent, subscriptions, utilities, and memberships.\n\n**2. Flexible spending** — compare dining, groceries, and shopping from week to week.\n\n**3. Income consistency** — distinguish regular salary from freelance payments before setting savings goals.\n\nThese are suggestions based on the demo categories available in Finora, not a complete analysis of real financial activity."
-  }
+function SavingsInsightCard({
+  onSelectCategory,
+}: {
+  onSelectCategory: (category: string) => void
+}) {
+  const housing =
+    demoSpending.find((item) => item.name === 'Housing')?.amount ?? 0
+  const food =
+    demoSpending.find((item) => item.name === 'Food & dining')?.amount ?? 0
+  const transport =
+    demoSpending.find((item) => item.name === 'Transport')?.amount ?? 0
 
-  return "I can help you explore spending, budgeting, savings goals, and cash flow.\n\nFor the most useful answer, ask me something specific, such as **“How can I reduce my monthly expenses?”** or **“Help me create a savings plan.”**\n\nI'm currently running in demo mode, so I don't yet have access to a live AI model or connected bank accounts."
+  const opportunities = [
+    { label: 'Housing', saving: housing * 0.05, color: 'bg-violet-500' },
+    { label: 'Food & dining', saving: food * 0.1, color: 'bg-cyan-500' },
+    { label: 'Transport', saving: transport * 0.1, color: 'bg-amber-500' },
+  ]
+
+  const totalSavings = opportunities.reduce(
+    (total, item) => total + item.saving,
+    0,
+  )
+
+  const goalProgress = Math.min(
+    100,
+    Math.round((demoSavingsGoal.saved / demoSavingsGoal.target) * 100),
+  )
+
+  return (
+    <div className="mb-6 grid gap-4 lg:grid-cols-2">
+      <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-violet-600 via-violet-600 to-indigo-700 p-5 text-white shadow-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-violet-100">
+            Potential monthly savings
+          </span>
+          <div className="rounded-xl bg-white/15 p-2">
+            <Sparkles size={19} />
+          </div>
+        </div>
+
+        <div className="mt-5 flex items-baseline gap-2">
+          <span className="text-4xl font-bold tracking-tight">
+            ${Math.round(totalSavings)}
+          </span>
+          <span className="text-sm text-violet-100">/ month</span>
+        </div>
+
+        <p className="mt-2 text-sm leading-6 text-violet-100">
+          An illustrative opportunity if you reduce selected expenses.
+        </p>
+
+        <div className="mt-5 space-y-4">
+          {opportunities.map((item) => (
+            <button
+              type="button"
+              key={item.label}
+              onClick={() => onSelectCategory(item.label)}
+              aria-label={`Get AI advice to reduce ${item.label} expenses`}
+              className="group w-full rounded-xl text-left transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            >
+              <div className="mb-1.5 flex items-center justify-between gap-3 px-2 pt-2 text-sm">
+                <span className="flex items-center gap-1.5 text-violet-100">
+                  {item.label}
+                  <ArrowUpRight
+                    size={13}
+                    className="opacity-0 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:opacity-100"
+                  />
+                </span>
+                <span className="font-semibold">
+                  ${Math.round(item.saving)}
+                </span>
+              </div>
+
+              <div className="h-1.5 overflow-hidden rounded-full bg-white/20">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 group-hover:brightness-125 ${item.color}`}
+                  style={{
+                    width: `${
+                      (item.saving /
+                        Math.max(...opportunities.map((x) => x.saving), 1)) *
+                      100
+                    }%`,
+                  }}
+                />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <p className="mt-4 border-t border-white/20 pt-3 text-xs text-violet-200">
+          Estimates based on demo expenses, not guaranteed results.
+        </p>
+
+        <p className="mt-2 text-xs text-violet-200/80">
+          Select a category to get personalized AI suggestions.
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500">Savings goal</p>
+            <h3 className="mt-1 text-lg font-bold text-slate-900">
+              Build your safety net
+            </h3>
+          </div>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+            <Sparkles size={20} />
+          </div>
+        </div>
+
+        <div className="mt-7 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-3xl font-bold tracking-tight text-slate-900">
+              ${demoSavingsGoal.saved.toLocaleString()}
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              of ${demoSavingsGoal.target.toLocaleString()} target
+            </p>
+          </div>
+          <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-semibold text-emerald-700">
+            {goalProgress}%
+          </span>
+        </div>
+
+        <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-slate-100">
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-all"
+            style={{ width: `${goalProgress}%` }}
+          />
+        </div>
+
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <span className="text-slate-500">Still to save</span>
+          <span className="font-semibold text-slate-900">
+            $
+            {(demoSavingsGoal.target - demoSavingsGoal.saved).toLocaleString()}
+          </span>
+        </div>
+
+        <p className="mt-5 text-xs leading-5 text-slate-400">
+          Illustrative progress using Finora's sample dashboard data.
+        </p>
+      </div>
+    </div>
+  )
 }
 
 export default function Copilot() {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>(loadSavedMessages)
   const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  const sendMessage = (text: string) => {
-    const question = text.trim()
-    if (!question) return
+  // Persist the current conversation in this browser tab.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages))
+    } catch (storageError) {
+      console.error('Could not save Finora chat history:', storageError)
+    }
+  }, [messages])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, loading])
+
+  async function sendMessage(text?: string) {
+    const content = (text ?? input).trim()
+
+    if (!content || loading) return
+
+    // Exclude the greeting, but keep every actual user and assistant turn.
+    const previousMessages = messages.filter(
+      (message) => message !== initialMessage &&
+        message.content !== initialMessage.content,
+    )
 
     const userMessage: Message = {
-      id: Date.now(),
       role: 'user',
-      content: question,
+      content,
     }
 
-    const assistantMessage: Message = {
-      id: Date.now() + 1,
-      role: 'assistant',
-      content: getDemoResponse(question),
-    }
-
-    setMessages((current) => [...current, userMessage, assistantMessage])
+    setMessages((current) => [...current, userMessage])
     setInput('')
+    setError('')
+    setLoading(true)
+
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: content,
+          history: previousMessages.slice(-MAX_HISTORY_MESSAGES),
+          financial_context: getFinancialContext(),
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || 'Unable to get a response. Please try again.',
+        )
+      }
+
+      const answer =
+        data.answer ??
+        data.response ??
+        data.message ??
+        'I could not generate a response. Please try again.'
+
+      setMessages((current) => [
+        ...current,
+        {
+          role: 'assistant',
+          content: answer,
+        },
+      ])
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Could not connect to Finora AI. Check that the backend is running.',
+      )
+    } finally {
+      setLoading(false)
+      inputRef.current?.focus()
+    }
   }
 
-  const resetChat = () => {
-    setMessages([])
+  function askAboutCategory(category: string) {
+    void sendMessage(
+      `Help me reduce my ${category} expenses. Analyze my ${category} spending using my dashboard figures and suggest practical, realistic ways to save money each month. Explain your recommendations and estimate potential savings without assuming that every expense can be reduced.`,
+    )
+  }
+
+  function resetChat() {
+    const freshMessages = [initialMessage]
+    setMessages(freshMessages)
     setInput('')
+    setError('')
+
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(freshMessages))
+    } catch (storageError) {
+      console.error('Could not reset Finora chat history:', storageError)
+    }
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-120px)] max-w-5xl flex-col pb-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/10 text-violet-300">
-              <Sparkles size={19} />
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">
+    <div className="mx-auto flex h-[calc(100vh-8.5rem)] min-h-[520px] max-w-5xl flex-col">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-violet-600">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
               AI Copilot
             </h1>
+            <p className="text-xs text-slate-500">
+              Your personal financial assistant
+            </p>
           </div>
-          <p className="mt-2 text-sm text-slate-400">
-            Your personal space to understand your money.
-          </p>
         </div>
 
-        {messages.length > 0 && (
-          <button
-            onClick={resetChat}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] px-3 py-2 text-sm text-slate-400 transition hover:bg-white/[0.05] hover:text-white"
-          >
-            <RotateCcw size={15} />
-            New chat
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={resetChat}
+          className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
+        >
+          <RotateCcw size={15} />
+          <span className="hidden sm:inline">New chat</span>
+        </button>
       </div>
 
-      <div className="mt-5 flex items-center gap-2 rounded-xl border border-violet-400/15 bg-violet-400/[0.04] px-3 py-2.5">
-        <span className="h-2 w-2 rounded-full bg-amber-400" />
-        <p className="text-xs text-slate-400">
-          Demo mode <span className="text-slate-600">·</span> Responses use local example logic, not a live AI model.
-        </p>
-      </div>
-
-      <div className="flex flex-1 flex-col justify-center py-8">
-        {messages.length === 0 ? (
-          <div className="mx-auto w-full max-w-3xl">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-violet-300/20 bg-gradient-to-br from-violet-400/15 to-cyan-400/10 text-violet-200 shadow-lg shadow-violet-950/20">
-              <Sparkles size={29} />
-            </div>
-
-            <div className="mt-6 text-center">
-              <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-                Make your money
-                <span className="block bg-gradient-to-r from-violet-300 to-cyan-300 bg-clip-text text-transparent">
-                  make more sense.
-                </span>
-              </h2>
-              <p className="mx-auto mt-4 max-w-lg text-sm leading-6 text-slate-400 sm:text-base">
-                Ask questions, explore spending patterns, and discover practical ways to improve your financial habits.
-              </p>
-            </div>
-
-            <div className="mt-9 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {suggestions.map((suggestion) => {
-                const Icon = suggestion.icon
-
-                return (
-                  <button
-                    key={suggestion.title}
-                    onClick={() => sendMessage(suggestion.prompt)}
-                    className="group rounded-2xl border border-white/[0.08] bg-[#11131b] p-4 text-left transition hover:border-violet-300/30 hover:bg-white/[0.04]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/[0.05] text-violet-300 transition group-hover:bg-violet-400/10">
-                        <Icon size={18} />
-                      </span>
-                      <Plus size={16} className="text-slate-600 transition group-hover:text-violet-300" />
-                    </div>
-                    <p className="mt-4 text-sm font-medium text-slate-200">
-                      {suggestion.title}
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
-                      {suggestion.prompt}
-                    </p>
-                  </button>
-                )
-              })}
-            </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4">
+          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 text-white shadow-sm">
+            <Bot size={21} />
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-400" />
           </div>
-        ) : (
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-            {messages.map((message) => (
+
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Finora AI</p>
+            <p className="text-xs text-emerald-600">Ready to help</p>
+          </div>
+
+          <div className="ml-auto hidden items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1.5 text-xs font-medium text-violet-700 sm:flex">
+            <Sparkles size={13} />
+            Financial insights
+          </div>
+        </div>
+
+        <div className="flex-1 space-y-6 overflow-y-auto px-4 py-5 sm:px-6">
+          <SavingsInsightCard onSelectCategory={askAboutCategory} />
+
+          {messages.map((message, index) => {
+            const isUser = message.role === 'user'
+
+            return (
               <div
-                key={message.id}
-                className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
+                key={`${index}-${message.role}`}
+                className={`flex items-start gap-3 ${
+                  isUser ? 'flex-row-reverse' : ''
+                }`}
               >
                 <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                    message.role === 'assistant'
-                      ? 'bg-violet-400/10 text-violet-300'
-                      : 'bg-white/[0.08] text-slate-300'
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    isUser
+                      ? 'bg-slate-100 text-slate-600'
+                      : 'bg-violet-100 text-violet-600'
                   }`}
                 >
-                  {message.role === 'assistant' ? <Bot size={18} /> : <UserRound size={18} />}
+                  {isUser ? <User size={16} /> : <Bot size={17} />}
                 </div>
+
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    message.role === 'user'
-                      ? 'bg-violet-500/15 text-violet-50'
-                      : 'border border-white/[0.07] bg-[#11131b] text-slate-300'
+                  className={`min-w-0 max-w-[90%] rounded-2xl px-4 py-3 sm:max-w-[85%] ${
+                    isUser
+                      ? 'rounded-tr-md bg-violet-600 text-white'
+                      : 'rounded-tl-md bg-slate-50'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap text-sm leading-7">
-                    {message.content}
-                  </p>
+                  {isUser ? (
+                    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-white">
+                      {message.content}
+                    </p>
+                  ) : (
+                    <MarkdownMessage content={message.content} />
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            )
+          })}
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault()
-          sendMessage(input)
-        }}
-        className="sticky bottom-3 mx-auto w-full max-w-3xl"
-      >
-        <div className="rounded-2xl border border-white/[0.12] bg-[#151721] p-2 shadow-xl shadow-black/20 transition focus-within:border-violet-300/30">
-          <textarea
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault()
-                sendMessage(input)
-              }
-            }}
-            rows={2}
-            placeholder="Ask Finora anything about your finances..."
-            className="max-h-36 min-h-14 w-full resize-y bg-transparent px-3 py-2 text-sm leading-6 text-white outline-none placeholder:text-slate-500"
-          />
-          <div className="flex items-center justify-between px-2 pb-1">
-            <p className="text-[11px] text-slate-600">
-              Demo insights only · Enter to send
-            </p>
+          {loading && (
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-violet-600">
+                <Bot size={17} />
+              </div>
+
+              <div className="flex items-center gap-2 rounded-2xl rounded-tl-md bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                <LoaderCircle
+                  size={16}
+                  className="animate-spin text-violet-500"
+                />
+                Analyzing your finances...
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mx-1 flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+              <AlertCircle size={17} className="mt-0.5 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p>{error}</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const lastUserMessage = [...messages]
+                      .reverse()
+                      .find((message) => message.role === 'user')
+                    setError('')
+                    if (lastUserMessage) {
+                      void sendMessage(lastUserMessage.content)
+                    }
+                  }}
+                  className="mt-2 font-semibold underline underline-offset-2"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {messages.length === 1 && !loading && (
+            <div className="pt-2">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Suggested questions
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {suggestions.map((suggestion) => (
+                  <button
+                    type="button"
+                    key={suggestion}
+                    onClick={() => void sendMessage(suggestion)}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-left text-sm text-slate-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div ref={bottomRef} />
+        </div>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault()
+            void sendMessage()
+          }}
+          className="border-t border-slate-100 bg-white p-4 sm:p-5"
+        >
+          <div className="flex items-end gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-2 transition focus-within:border-violet-300 focus-within:ring-4 focus-within:ring-violet-50">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault()
+                  void sendMessage()
+                }
+              }}
+              placeholder="Ask about your spending, savings, or financial goals..."
+              rows={1}
+              className="max-h-32 min-h-10 flex-1 resize-y bg-transparent px-3 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-400"
+            />
+
             <button
               type="submit"
-              disabled={!input.trim()}
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500 text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-40"
+              disabled={!input.trim() || loading}
               aria-label="Send message"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-600 text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <ArrowUp size={18} />
+              <Send size={17} />
             </button>
           </div>
-        </div>
-        <p className="mt-3 text-center text-[11px] text-slate-600">
-          Finora provides educational insights, not professional financial advice.
-        </p>
-      </form>
+
+          <p className="mt-2 text-center text-[11px] text-slate-400">
+            Finora uses demo dashboard figures for now. AI responses may not
+            always be accurate.
+          </p>
+        </form>
+      </div>
     </div>
   )
 }

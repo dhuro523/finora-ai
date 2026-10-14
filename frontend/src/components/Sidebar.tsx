@@ -1,3 +1,4 @@
+
 import { NavLink } from 'react-router-dom'
 import {
   Activity,
@@ -18,18 +19,25 @@ const navigation = [
 
 export default function Sidebar() {
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-white/[0.07] bg-[#0D0E1C] px-5 py-6">
+    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-[#E8E8F0] bg-white px-5 py-6">
+      {/* Brand */}
       <div className="mb-10 flex items-center gap-3 px-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#8B73FF] to-[#6241E8] shadow-lg shadow-violet-900/30">
-          <Activity size={22} strokeWidth={2.4} className="text-white" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C5CFC]">
+          <Activity size={22} strokeWidth={2.2} className="text-white" />
         </div>
+
         <div>
-          <p className="text-lg font-semibold tracking-tight text-white">finora<span className="text-violet-400">.</span></p>
-          <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-500">Personal finance AI</p>
+          <p className="text-lg font-semibold tracking-tight text-[#16161D]">
+            finora<span className="text-[#7C5CFC]">.</span>
+          </p>
+          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-[#85859A]">
+            Personal finance AI
+          </p>
         </div>
       </div>
 
-      <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
+      {/* Navigation */}
+      <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#9292A5]">
         Workspace
       </p>
 
@@ -40,17 +48,18 @@ export default function Sidebar() {
             to={path}
             end={path === '/'}
             className={({ isActive }) =>
-              `group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200 ${
+              `group flex items-center gap-3 rounded-xl border px-3 py-3 text-sm font-medium transition-colors duration-150 ${
                 isActive
-                  ? 'border border-violet-400/20 bg-violet-500/10 text-violet-300'
-                  : 'border border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-white'
+                  ? 'border-[#E8E0FF] bg-[#F0EBFF] text-[#6845E8]'
+                  : 'border-transparent text-[#6B6B80] hover:bg-[#F7F7FB] hover:text-[#16161D]'
               }`
             }
           >
-            <Icon size={18} strokeWidth={1.8} />
+            <Icon size={18} strokeWidth={1.9} />
             <span>{label}</span>
+
             {label === 'AI Copilot' && (
-              <span className="ml-auto rounded-md bg-cyan-400/10 px-1.5 py-0.5 text-[9px] font-semibold text-cyan-300">
+              <span className="ml-auto rounded-md bg-white px-1.5 py-0.5 text-[9px] font-semibold text-[#7C5CFC] ring-1 ring-[#E8E0FF]">
                 AI
               </span>
             )}
@@ -58,13 +67,17 @@ export default function Sidebar() {
         ))}
       </nav>
 
+      {/* Bottom section */}
       <div className="mt-auto">
-        <div className="mb-5 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4">
+        <div className="mb-5 rounded-xl border border-[#E8E8F0] bg-[#FAFAFD] p-4">
           <div className="mb-2 flex items-center gap-2">
-            <Wallet size={16} className="text-violet-300" />
-            <span className="text-xs font-medium text-slate-200">Your money. Understood.</span>
+            <Wallet size={16} className="text-[#7C5CFC]" />
+            <span className="text-xs font-semibold text-[#292936]">
+              Your money. Understood.
+            </span>
           </div>
-          <p className="text-xs leading-5 text-slate-500">
+
+          <p className="text-xs leading-5 text-[#77778B]">
             Turn your financial data into clearer decisions.
           </p>
         </div>
@@ -73,24 +86,36 @@ export default function Sidebar() {
           to="/settings"
           className={({ isActive }) =>
             `flex items-center gap-3 rounded-xl px-3 py-3 text-sm transition-colors ${
-              isActive ? 'text-violet-300' : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'
+              isActive
+                ? 'bg-[#F0EBFF] font-medium text-[#6845E8]'
+                : 'text-[#6B6B80] hover:bg-[#F7F7FB] hover:text-[#16161D]'
             }`
           }
         >
-          <Settings2 size={18} strokeWidth={1.8} />
+          <Settings2 size={18} strokeWidth={1.9} />
           Settings
         </NavLink>
 
-        <div className="mt-5 border-t border-white/[0.07] pt-4">
+        {/* Demo profile */}
+        <div className="mt-5 border-t border-[#E8E8F0] pt-4">
           <div className="flex items-center gap-3 px-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-violet-400/20 bg-violet-500/10 text-xs font-semibold text-violet-200">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F0EBFF] text-xs font-semibold text-[#6845E8]">
               FA
             </div>
-            <div>
-              <p className="text-xs font-medium text-slate-200">Finora Demo</p>
-              <p className="mt-0.5 text-[10px] text-slate-500">Sample financial data</p>
+
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-[#292936]">
+                Finora Demo
+              </p>
+              <p className="mt-0.5 text-[10px] text-[#85859A]">
+                Sample financial data
+              </p>
             </div>
-            <span className="ml-auto h-2 w-2 rounded-full bg-emerald-400" />
+
+            <span
+              className="ml-auto h-2 w-2 shrink-0 rounded-full bg-[#16A34A]"
+              title="Demo mode"
+            />
           </div>
         </div>
       </div>
