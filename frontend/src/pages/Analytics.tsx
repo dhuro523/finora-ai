@@ -1,7 +1,6 @@
+
 import useCurrency from '../utils/formatCurrency';
 
-
-2.
 import {
   ResponsiveContainer,
   AreaChart,
@@ -13,6 +12,7 @@ import {
   BarChart,
   Bar,
 } from 'recharts';
+
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -48,22 +48,28 @@ const tooltipStyle = {
   boxShadow: '0 8px 24px rgba(30, 25, 60, 0.06)',
 };
 
-
-
 const cardClass =
   'rounded-2xl border border-[#E8E8F0] bg-white p-5 sm:p-6';
 
 export default function Analytics() {
   const formatCurrency = useCurrency();
+
   const latestMonth = monthlyData[monthlyData.length - 1];
   const previousMonth = monthlyData[monthlyData.length - 2];
 
   const savings = latestMonth.income - latestMonth.expenses;
-  const savingsRate = Math.round((savings / latestMonth.income) * 100);
+  const savingsRate = Math.round(
+    (savings / latestMonth.income) * 100
+  );
+
   const incomeChange =
-    ((latestMonth.income - previousMonth.income) / previousMonth.income) * 100;
+    ((latestMonth.income - previousMonth.income) /
+      previousMonth.income) *
+    100;
+
   const expenseChange =
-    ((latestMonth.expenses - previousMonth.expenses) / previousMonth.expenses) *
+    ((latestMonth.expenses - previousMonth.expenses) /
+      previousMonth.expenses) *
     100;
 
   const metrics = [
@@ -138,7 +144,9 @@ export default function Analytics() {
               className={`${cardClass} transition-colors duration-200 hover:border-[#DCD4FF]`}
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium text-[#6B6B80]">{label}</p>
+                <p className="text-sm font-medium text-[#6B6B80]">
+                  {label}
+                </p>
 
                 <div
                   className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconStyle}`}
@@ -152,13 +160,14 @@ export default function Analytics() {
               </p>
 
               <div className="mt-3 flex items-center gap-1.5">
-                {label !== 'Monthly savings' && label !== 'Savings rate' && (
-                  positive ? (
+                {label !== 'Monthly savings' &&
+                  label !== 'Savings rate' &&
+                  (positive ? (
                     <ArrowUpRight size={14} className="text-[#16834A]" />
                   ) : (
                     <ArrowDownRight size={14} className="text-[#DC2626]" />
-                  )
-                )}
+                  ))}
+
                 <p
                   className={`text-xs ${
                     label === 'Monthly savings' || label === 'Savings rate'
@@ -172,7 +181,7 @@ export default function Analytics() {
                 </p>
               </div>
             </article>
-          ),
+          )
         )}
       </section>
 
@@ -276,6 +285,7 @@ export default function Analytics() {
               <span className="h-2.5 w-2.5 rounded-full bg-[#7C5CFC]" />
               Income
             </div>
+
             <div className="flex items-center gap-2 text-xs text-[#6B6B80]">
               <span className="h-2.5 w-2.5 rounded-full bg-[#65B9AD]" />
               Expenses
@@ -345,6 +355,7 @@ export default function Analytics() {
                 Housing
               </span>
             </div>
+
             <p className="mt-1 text-right text-lg font-semibold tabular-nums">
               {formatCurrency(categoryData[0].amount)}
             </p>

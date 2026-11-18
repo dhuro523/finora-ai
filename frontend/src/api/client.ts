@@ -1,5 +1,6 @@
-
-const API_BASE_URL = 'http://127.0.0.1:8000';
+﻿
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 export interface FinancialTransaction {
   name: string;
@@ -100,7 +101,9 @@ export function updateSavingsGoal(
   });
 }
 
-export function deleteSavingsGoal(id: number): Promise<{ message: string; id: number }> {
+export function deleteSavingsGoal(
+  id: number,
+): Promise<{ message: string; id: number }> {
   return apiRequest<{ message: string; id: number }>(`/api/goals/${id}`, {
     method: 'DELETE',
   });
